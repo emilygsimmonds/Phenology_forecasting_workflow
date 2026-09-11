@@ -1,8 +1,22 @@
 # =============================================================================
-# This script holds the function 'predictPhenology.R'
+# This script holds the function 'predictPhenology.R' it takes posterior samples
+# from a nimble model combined with location, elevation, and predicted temperature
+# and predicts future phenology dates for the focal plants. 
+#
+# There are three parts:
+#   1. Prepare data for predictions (subsample the poster samples of parameters)
+#   2. Generate forecasts (forward simulation using all parameters)
+#   3. Generate standardised outputs (following standard practice/guidelines)
+#
+# Arguments:
+#   predYears - years to be predicted
+#   paramFilename - filename and path for posterior samples of parameters
+#   predData - datafile needed for prediction
+#   nDraws - number of samples to take
+#
 # -----------------------------------------------------------------------------
 #
-# Author: Emily G. Simmonds, 07.09.26
+# Author: Emily G. Simmonds, 11.09.26
 # =============================================================================
 
 
@@ -10,36 +24,67 @@
 # Set up #
 ################################################################################
 
+predictPhenology <- function(predYears,
+                             paramFilename,
+                             predData,
+                             nDraws){
 
-# Function to run shrub abundance forecasts using a density-dependence-only
-# (autoregressive) baseline model — no NDVI or climate covariates are used.
-# This serves as a benchmark against which NDVI-driven forecast versions
-# can be compared.
+################################################################################
+# Part 1: Prepare data for predictions 
+  
+  # load the posterior samples
+  sampledParameters <- readRDS(paramFilename)
+  
+  # Draw 1000 random samples from the pooled posterior to propagate
+  # parameter uncertainty through the forecasts
+  subsampledParameters <- apply(sampledParameters, 2, sample, size = nDraws,
+                                replace = FALSE) 
+  # this is done for each column, which is a different parameter
+  
+# Part 2: Generate forecasts
+  
+  # need to save into an array [draws, year, location]
+  predictions <- array(NA, c(nDraws, length(predYears), length(predData[,1])))
+  
+  # then create a loop to generate the predictions
+  
+  for(i in 1:nDraws){
+  
+    # first pull year effects for these new years assuming same distribution
+    for (j in 1:length(predYears)) {
+    
+    # year effect
+    set.seed(j)
+    yearEffect[j] <- rnorm(1, 0, sd = subsampledParameters[i, "sigmaYear"])
+    
+    # then loop over the data
+    for (k in 1:length(predData[,1])) { 
+    
+    # linear predictor
+    mu <- subsampledParameters[i, "beta0"] + 
+      subsampledParameters[i, "betaTemperature"] * predData$temperature[k] + 
+      subsampledParameters[i, "betaSpace"] * predData$latitude[k] +
+      subsampledParameters[i, "betaElevation"] * predData$elevation[k] +
+      yearEffect[j]
+    
+    # random part
+    predictions[i,j,k] <- rnorm(1, mu, sd = subsampledParameters[i, "sigma"])
+    
+    }}}
+  
+# Part 3: Generate standardised outputs
+  
+  
+  
+  
+  
+  
+  
+}
 
-# I got the data and underlying demographic model from: https://github.com/MariaPaniw/shrub_forecast
-
-# There are three parts:
-#   1. Prepare data for predictions (abundance data only; no covariate loading)
-#   2. Generate forecasts (forward simulation using only a0 and a2 parameters)
-#   3. Generate standardised outputs (tidy long-format data frames per species)
-
-# PLEASE FOLLOW THIS STRUCTURE WHEN DEVELOPING YOUR OWN FORECASTS TO FACILITATE
-# INTERCOMPARISON
-
-# Arguments:
-#   year_before_pred - last year with observed data; forecasts begin from
-#                      year_before_pred + 1
-#   n.years.pred     - number of years ahead to forecast
-#
-# Note: compared to the NDVI-driven run_model_combination(), this function has
-# a simpler signature — ndvi_metric, scenario, bioclim, model, and lag have all
-# been removed because there is no covariate to load, scale, or lag.
 
 
 
-# Draw 1000 random samples from the pooled posterior to propagate
-# parameter uncertainty through the forecasts
-par.sub <- sample(1:length(out1$sims.list$a0.h1), n.draws)
 
 
 

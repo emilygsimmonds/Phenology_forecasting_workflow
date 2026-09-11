@@ -112,8 +112,8 @@ modelRun <- runMCMC(cMCMC,
                     nchains = nchains, 
                     setSeed = seed)
 
-# look at the output
-MCMCsummary(modelRun)
+# save the output
+saveRDS(modelRun, "./Data/modelRun.rds")
 
 
 

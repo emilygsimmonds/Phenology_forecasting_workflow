@@ -48,7 +48,7 @@ spatialExtent <- c(range(traitData$Latitude),
 
 
 ################################################################################
-# Pull climate data #
+# Pull current climate data #
 ################################################################################
 
 # pull data for each point rather than as a RASTER. Can do this with map.
@@ -92,3 +92,39 @@ climateData <- map(listTraitData, ~{
 
 # save out
 saveRDS(climateData, "./Data/climateData.rds")  
+
+
+################################################################################
+# Pull future climate data #
+################################################################################
+
+# will use the same point data as before but for 3 years after the end of
+# dataset
+
+# first load combined data
+
+combinedData <- read.csv("./Data/combinedData.csv") %>%
+  filter(elevation > 0) # remove any NAs in elevation
+
+predictionYears <- (max(combinedData$year) + 1) : 2025
+
+# make the dataframe a list of rows
+listTraitData <- split(combinedData, row(combinedData))
+
+climateDataFuture <- map(listTraitData, ~{
+  get_chelsa(coords = as.data.frame(.x[,c("lon",
+                                          "lat")]),
+             vars = "tasmin",
+             source = c("present"),
+             start = as.Date(paste0(predictionYears[1],"-01-01")), # using custom dates for now
+             end = as.Date(paste0(predictionYears[3],"-01-01")),
+             months = c(5:8), # taking months 5-8 for all
+             to_celsius = TRUE,
+             output_dir = NULL,
+             id_col = NULL,
+             verbose = TRUE)
+  
+})
+
+# save out
+saveRDS(climateDataFuture, "./Data/climateDataFuture.rds")  
