@@ -11,6 +11,7 @@
 
 ################################################################################
 # Set up #
+################################################################################
 
 # load packages
 
@@ -29,19 +30,23 @@ code <- nimbleCode({
   betaSpace ~ dnorm(0, sd = 1000) # effect of latitude
   betaElevation ~ dnorm(0, sd = 1000) # effect of elevation
   # should think abotu including species and phylogeny
-  sigma_year ~ dunif(0, 1000) # sd of random effect of year
+  sigmaYear ~ dunif(0, 1000) # sd of random effect of year
   sigma ~ dunif(0, 1000) # sd of residual error
   
-  for (i in 1:N) { # N = sample size
+  for (j in 1:nYear) {
     
     # year effect
-    yearEffect[i] ~ dnorm(0, sd = sigma_year)
+    yearEffect[j] ~ dnorm(0, sd = sigmaYear)
+    
+  }
+  
+  for (i in 1:N) { # N = sample size
     
     # linear predictor
     mu[i] <- beta0 + betaTemperature * temperature[i] + 
                      betaSpace * latitude[i] +
                      betaElevation * elevation[i] +
-                     yearEffect[i]
+                     yearEffect[yearMarker[i]]
     
     # random part
     Y[i] ~ dnorm(mu[i], sd = sigma)
