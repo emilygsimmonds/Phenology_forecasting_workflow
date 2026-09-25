@@ -38,7 +38,7 @@ traitData <- traitData %>%
 # climate data
 
 climateData <- readRDS("./Data/climateData.rds")
-
+climateDataFuture <- readRDS("./Data/climateDataFuture.rds")
 
 ################################################################################
 # Reduce trait data and combine #
@@ -76,7 +76,7 @@ combinedData <- map2(.x = listTraitData, .y = climateData, ~{
       mutate(temperature = mean(.y$value))
       return(combinedData)}
     
-  }else{return(NA)}
+  }else{return(NULL)}
   
 }) %>% compact() %>% bind_rows()
 
@@ -84,4 +84,3 @@ combinedData <- map2(.x = listTraitData, .y = climateData, ~{
 # now save out the combined data
 
 write.csv(combinedData, "./Data/combinedData.csv", row.names = FALSE)
-

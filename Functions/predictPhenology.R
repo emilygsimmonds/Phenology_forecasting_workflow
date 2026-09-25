@@ -24,6 +24,9 @@
 # Set up #
 ################################################################################
 
+# load packages 
+library(tidyverse)
+
 predictPhenology <- function(predYears,
                              paramFilename,
                              predData,
@@ -33,11 +36,16 @@ predictPhenology <- function(predYears,
 # Part 1: Prepare data for predictions 
   
   # load the posterior samples
-  sampledParameters <- readRDS(paramFilename)
+  sampledParameters <- readRDS(paramFilename) 
+  
+  # ideally re-format into one single long list of samples
+  sampledParametersTogether <- bind_rows(as.data.frame(sampledParameters[[1]]),
+                                         as.data.frame(sampledParameters[[2]]))
   
   # Draw 1000 random samples from the pooled posterior to propagate
   # parameter uncertainty through the forecasts
-  subsampledParameters <- apply(sampledParameters, 2, sample, size = nDraws,
+  subsampledParameters <- apply(sampledParametersTogether, 2, sample, 
+                                size = nDraws,
                                 replace = FALSE) 
   # this is done for each column, which is a different parameter
   
@@ -45,6 +53,7 @@ predictPhenology <- function(predYears,
   
   # need to save into an array [draws, year, location]
   predictions <- array(NA, c(nDraws, length(predYears), length(predData[,1])))
+  yearEffect <- rep(NA, length(predYears))
   
   # then create a loop to generate the predictions
   
@@ -62,9 +71,9 @@ predictPhenology <- function(predYears,
     
     # linear predictor
     mu <- subsampledParameters[i, "beta0"] + 
-      subsampledParameters[i, "betaTemperature"] * predData$temperature[k] + 
-      subsampledParameters[i, "betaSpace"] * predData$latitude[k] +
-      subsampledParameters[i, "betaElevation"] * predData$elevation[k] +
+      (subsampledParameters[i, "betaTemperature"] * predData$temperature[k]) + 
+      (subsampledParameters[i, "betaSpace"] * predData$lat[k]) +
+      (subsampledParameters[i, "betaElevation"] * predData$elevation[k]) +
       yearEffect[j]
     
     # random part
@@ -74,8 +83,31 @@ predictPhenology <- function(predYears,
   
 # Part 3: Generate standardised outputs
   
+  # Flatten the 3-D prediction array to a long data frame
+  predictionsFlat <- array2DF(predictions)
+  colnames(predictionsFlat) <- c("uncertainty_component", "site_id", "datetime", "prediction")
   
+  halimium_predictions$datetime <- factor(halimium_predictions$datetime)
+  levels(halimium_predictions$datetime) <- paste0(seq(year_before_pred + 1, year_before_pred + n.years.pred),
+                                                  "-05-20 18:00:00")  # fixed survey date within each year
+  halimium_predictions$datetime <- as.character(halimium_predictions$datetime)
   
+  # Attach metadata columns required by the standard forecast format
+  halimium_predictions$project_id         <- "donana_forecast_V1"
+  halimium_predictions$model_id           <- "demo_Nmix"
+  halimium_predictions$forecast_type      <- "temporal"
+  halimium_predictions$reference_datetime <- paste0(year_before_pred, "-05-20 18:00:00")
+  halimium_predictions$duration           <- "P1Y"   # ISO 8601: 1-year forecast horizon
+  halimium_predictions$species            <- "Halimium halimifolium"
+  halimium_predictions$family             <- "sample"  # each row is a single posterior draw
+  # Variable name flags this as the autoregressive baseline with no covariate
+  halimium_predictions$variable           <- "abundance_rpois"
+  
+  # Reorder columns to match the standard submission schema
+  halimium_predictions <- halimium_predictions[, c("project_id", "model_id", "forecast_type",
+                                                   "datetime", "reference_datetime", "duration",
+                                                   "site_id", "species", "family",
+                                                   "uncertainty_component", "variable", "prediction")]
   
   
   
@@ -90,34 +122,4 @@ predictPhenology <- function(predYears,
 
 
 
-# Flatten the 3-D prediction array to a long data frame
-halimium_predictions <- array2DF(n.hal.pred)
-colnames(halimium_predictions) <- c("uncertainty_component", "site_id", "datetime", "prediction")
 
-# Convert array-index integers to meaningful labels for site and time
-halimium_predictions$uncertainty_component <- as.numeric(factor(halimium_predictions$uncertainty_component))
-halimium_predictions$site_id <- factor(halimium_predictions$site_id)
-levels(halimium_predictions$site_id) <- unique(num_fut$plot)  # map integers to plot names
-halimium_predictions$site_id <- as.character(halimium_predictions$site_id)
-
-halimium_predictions$datetime <- factor(halimium_predictions$datetime)
-levels(halimium_predictions$datetime) <- paste0(seq(year_before_pred + 1, year_before_pred + n.years.pred),
-                                                "-05-20 18:00:00")  # fixed survey date within each year
-halimium_predictions$datetime <- as.character(halimium_predictions$datetime)
-
-# Attach metadata columns required by the standard forecast format
-halimium_predictions$project_id         <- "donana_forecast_V1"
-halimium_predictions$model_id           <- "demo_Nmix"
-halimium_predictions$forecast_type      <- "temporal"
-halimium_predictions$reference_datetime <- paste0(year_before_pred, "-05-20 18:00:00")
-halimium_predictions$duration           <- "P1Y"   # ISO 8601: 1-year forecast horizon
-halimium_predictions$species            <- "Halimium halimifolium"
-halimium_predictions$family             <- "sample"  # each row is a single posterior draw
-# Variable name flags this as the autoregressive baseline with no covariate
-halimium_predictions$variable           <- "abundance_rpois"
-
-# Reorder columns to match the standard submission schema
-halimium_predictions <- halimium_predictions[, c("project_id", "model_id", "forecast_type",
-                                                 "datetime", "reference_datetime", "duration",
-                                                 "site_id", "species", "family",
-                                                 "uncertainty_component", "variable", "prediction")]
