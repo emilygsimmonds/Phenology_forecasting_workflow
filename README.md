@@ -13,7 +13,7 @@ the dataset to the months and years of interest. *Outputs* are a trait data file
 that can be an input for component 3, a dataframe of date, latitude, and longitude,
 which will act as the input for component 2. Requires only 1 *script* 'formatTrait.R'.
 
-Component 2: **Pull Chelsa Data**: this component takes two *inputs* a dataframe
+Component 2: **Chelsa Extractor**: this component takes two *inputs* a dataframe
 of year, lon, lat, and a vector of the months to take data for (numeric). The
 component pulls the appropriate temperature data from these locations and dates 
 from Chelsa. It then *outputs* the resulting climate data. Requires 2 *scripts* 
