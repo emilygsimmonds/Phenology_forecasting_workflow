@@ -19,8 +19,7 @@
 
 # source functions ####
 
-source('./Functions/get_chelsa.R')
-
+source('./componentScripts/get_chelsa.R')
 
 # load packages ####
 
