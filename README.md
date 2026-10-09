@@ -15,8 +15,9 @@ that can be an input for component 3, a dataframe of date, latitude, and longitu
 which will act as the input for component 2. Requires only 1 *script* 'formatTrait.R'.
 
 Component 2: Temporary component to be replaced by **Chelsa Extractor**: 
-this component takes two *inputs* a dataframe
-of year, lon, lat, and a vector of the months to take data for (numeric). The
+this component takes three *inputs* a dataframe
+of year, lon, lat, and a vector of the months to take data for (numeric), also
+an option of giving prediction years. The
 component pulls the appropriate temperature data from these locations and dates 
 from Chelsa. It then *outputs* the resulting climate data. Requires 2 *scripts* 
 'get_chelsa.R' and 'pullChelsaData.R'.

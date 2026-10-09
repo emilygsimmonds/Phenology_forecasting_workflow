@@ -44,9 +44,12 @@ traitData <- traitData %>%
          lat = round(lat, 2))
 
 # third step - subset to just the months and years of interest
-traitDataMonth <- filter(traitData, month >= min(months) & month <= max(months),
+formattedTraits <- filter(traitData, month >= min(months) & month <= max(months),
                          year >= min(years) & year <= max(years))
 
-# forth step - output the finished dataframe
+# forth step - output the finished whole dataframe
+write.csv(formattedTraits, "formattedTraits.csv", row.names = FALSE)
 
-write.csv(traitDataMonth, "formatedTraits.csv", row.names = FALSE)
+# final step - output Chelsa Extractor inputs
+chelsaExInputs <- formattedTraits[,c("year", "lon", "lat")]
+write.csv(chelsaExInputs, "chelsaExInputs.csv", row.names = FALSE)
